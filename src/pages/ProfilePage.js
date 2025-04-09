@@ -1,11 +1,11 @@
 import React from 'react';
-import {Alert} from 'react-native';
+import { Alert } from 'react-native';
 import styled from 'styled-components/native';
-import {Button} from 'react-native-paper';
-import {useDispatch, useSelector} from 'react-redux';
-import {logOut} from '../configurations/slices/authSlice';
-import {auth} from '../configurations/firebaseConfig';
-import {signOut} from 'firebase/auth';
+import { Button } from 'react-native-paper';
+import { useDispatch, useSelector } from 'react-redux';
+import { logOut } from '../configurations/slices/authSlice';
+import { auth } from '../configurations/firebaseConfig';
+import { signOut } from 'firebase/auth';
 
 const PageWrapper = styled.View`
     flex: 1;
@@ -40,19 +40,19 @@ export default function ProfilePage() {
             await signOut(auth);
             dispatch(logOut());
         } catch (error) {
-            console.error('Помилка при виході:', error);
-            Alert.alert('Помилка', 'Не вдалося вийти. Спробуйте ще раз.');
+            console.error('Error during sign out:', error);
+            Alert.alert('Error', 'Failed to sign out. Please try again.');
         }
     };
 
     return (
         <PageWrapper>
             <UserInfo>
-                <UserName>{user?.email || 'Невідомий користувач'}</UserName>
+                <UserName>{user?.email || 'Unknown user'}</UserName>
                 {/*<UserEmail>{user?.uid || ''}</UserEmail>*/}
             </UserInfo>
             <Button mode="contained" onPress={handleLogout} buttonColor="#0071ff">
-                Вийти
+                Sign Out
             </Button>
         </PageWrapper>
     );

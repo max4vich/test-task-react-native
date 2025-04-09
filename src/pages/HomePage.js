@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Alert,
     Keyboard,
@@ -6,21 +6,23 @@ import {
     FlatList,
     TouchableOpacity,
     TouchableWithoutFeedback,
-    Platform, View,
+    Platform,
+    View,
 } from 'react-native';
 import styled from 'styled-components/native';
-import {TextInput, Button} from 'react-native-paper';
-import {Ionicons} from '@expo/vector-icons';
-import {collection, addDoc, query, orderBy, onSnapshot, doc, deleteDoc} from 'firebase/firestore';
-import {db} from '../configurations/firebaseConfig';
-import {useSelector, useDispatch} from 'react-redux';
-import {setExpenses, removeExpense as removeExpenseAction} from '../configurations/slices/expensesSlice';
+import { TextInput, Button } from 'react-native-paper';
+import { Ionicons } from '@expo/vector-icons';
+import { collection, addDoc, query, orderBy, onSnapshot, doc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { db } from '../configurations/firebaseConfig';
+import { useSelector, useDispatch } from 'react-redux';
+import { setExpenses, removeExpense as removeExpenseAction } from '../configurations/slices/expensesSlice';
 
-// Common styles for pages with white background
+// Загальні стилі для сторінок
 const PageWrapper = styled.View`
     flex: 1;
-    background: white;
+    background: #f0f4f7;
     padding: 24px;
+    padding-bottom: 0;
 `;
 
 const Header = styled.View`
@@ -30,22 +32,27 @@ const Header = styled.View`
 `;
 
 const HeaderTitle = styled.Text`
-    font-size: 24px;
+    font-size: 26px;
     font-weight: bold;
-    color: #333;
+    color: #0071ff;
     font-family: Montserrat;
     text-align: left;
     width: 100%;
+    margin-bottom: 8px;
 `;
 
-// Expense card styling
-const ExpenseCard = styled.TouchableOpacity`
+const ExpenseCard = styled.View`
     background: white;
     border-radius: 16px;
     padding: 16px;
     margin-bottom: 12px;
+    shadow-color: #000;
+    shadow-offset: 0px 2px;
+    shadow-opacity: 0.1;
+    shadow-radius: 4px;
     elevation: 3;
-    border: 1px solid #333;
+    border-left-width: 4px;
+    border-left-color: #0071ff;
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
@@ -56,7 +63,7 @@ const ExpenseInfo = styled.View`
 `;
 
 const ExpenseTitle = styled.Text`
-    font-size: 18px;
+    font-size: 20px;
     font-weight: bold;
     color: #333;
 `;
@@ -64,6 +71,7 @@ const ExpenseTitle = styled.Text`
 const ExpenseDetail = styled.Text`
     font-size: 14px;
     color: #666;
+    margin-top: 4px;
 `;
 
 const CurrencySelector = styled.View`
@@ -84,23 +92,17 @@ const CurrencyLabel = styled.Text`
     color: #333;
 `;
 
-const StyledButton = styled(Button).attrs({
-    contentStyle: {paddingVertical: 10},
-})`
-    border-radius: 28px;
-    margin-bottom: 12px;
-`;
-
 const AddExpenseButton = styled(Button).attrs({
-    contentStyle: {paddingVertical: 8},
+    contentStyle: { paddingVertical: 8 },
 })`
-    margin-top: 16px;
+    margin-bottom: 16px;
     border-radius: 24px;
+    background-color: #0071ff;
 `;
 
 const ModalContainer = styled.View`
     flex: 1;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.6);
     justify-content: center;
     padding: 24px;
 `;
@@ -109,6 +111,11 @@ const ModalContent = styled.View`
     background: white;
     border-radius: 16px;
     padding: 24px;
+    shadow-color: #000;
+    shadow-offset: 0px 2px;
+    shadow-opacity: 0.2;
+    shadow-radius: 4px;
+    elevation: 5;
 `;
 
 const inputStyle = {
@@ -117,6 +124,41 @@ const inputStyle = {
     marginBottom: 12,
 };
 
+// Додаткові компоненти для категорій
+const CategoryScroll = styled.ScrollView.attrs({
+    horizontal: true,
+    showsHorizontalScrollIndicator: false,
+    contentContainerStyle: { paddingHorizontal: 8 },
+})`
+  margin-bottom: 16px;
+`;
+
+const CategoryButton = styled.TouchableOpacity`
+  flex-direction: row;
+  align-items: center;
+  padding: 8px 12px;
+  background: ${props => (props.selected ? "#0071ff" : "white")};
+  border: 1px solid #0071ff;
+  border-radius: 20px;
+  margin-right: 8px;
+`;
+
+const CategoryText = styled.Text`
+  margin-left: 6px;
+  font-size: 16px;
+  color: ${props => (props.selected ? "white" : "#0071ff")};
+  font-weight: bold;
+`;
+
+// Дефолтні категорії для вибору у модальному вікні
+const defaultCategories = [
+    { name: "Food", icon: "fast-food-outline" },
+    { name: "Transport", icon: "bus-outline" },
+    { name: "Bills", icon: "receipt-outline" },
+    { name: "Entertainment", icon: "videocam-outline" },
+    { name: "Shopping", icon: "cart-outline" },
+    { name: "Other", icon: "ellipsis-horizontal-outline" },
+];
 
 export default function HomePage() {
     const dispatch = useDispatch();
@@ -127,6 +169,9 @@ export default function HomePage() {
     const [date, setDate] = useState('');
     const [currency, setCurrency] = useState('UAH');
     const [modalVisible, setModalVisible] = useState(false);
+
+    const [isEditing, setIsEditing] = useState(false);
+    const [editingExpenseId, setEditingExpenseId] = useState(null);
 
     const user = useSelector(state => state.auth.user);
     const expenses = useSelector(state => state.expenses.expenses);
@@ -139,14 +184,14 @@ export default function HomePage() {
             q,
             (querySnapshot) => {
                 const uniqueExpenses = [];
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data();
+                querySnapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
                     if (data.userId === user.uid) {
                         const createdAt =
                             data.createdAt && typeof data.createdAt.toDate === 'function'
                                 ? data.createdAt.toDate().toISOString()
                                 : data.createdAt;
-                        const expenseItem = {id: doc.id, ...data, createdAt};
+                        const expenseItem = { id: docSnap.id, ...data, createdAt };
                         if (!uniqueExpenses.find(exp => exp.id === expenseItem.id)) {
                             uniqueExpenses.push(expenseItem);
                         }
@@ -158,9 +203,18 @@ export default function HomePage() {
                 console.error("Error fetching expenses: ", error);
             }
         );
-
         return () => unsubscribe();
     }, [user, dispatch]);
+
+    const resetForm = () => {
+        setTitle('');
+        setAmount('');
+        setCategory('');
+        setDate('');
+        setCurrency('UAH');
+        setIsEditing(false);
+        setEditingExpenseId(null);
+    };
 
     const handleAddExpense = async () => {
         Keyboard.dismiss();
@@ -184,15 +238,40 @@ export default function HomePage() {
         try {
             await addDoc(collection(db, 'expenses'), expenseData);
             Alert.alert('Success', 'Expense added successfully.');
-
-            setTitle('');
-            setAmount('');
-            setCategory('');
-            setDate('');
+            resetForm();
             setModalVisible(false);
         } catch (error) {
             console.error("Error adding expense: ", error);
             Alert.alert('Error', 'Failed to add expense. Please try again.');
+        }
+    };
+
+    const handleUpdateExpense = async () => {
+        Keyboard.dismiss();
+        if (!title.trim() || !amount.trim() || !category.trim() || !date.trim()) {
+            Alert.alert('Error', 'Please fill in all fields');
+            return;
+        }
+        if (!user) {
+            Alert.alert('Error', 'User not found. Please log in.');
+            return;
+        }
+        const expenseData = {
+            title: title.trim(),
+            amount: parseFloat(amount),
+            currency,
+            category: category.trim(),
+            date,
+        };
+        try {
+            const expenseRef = doc(db, 'expenses', editingExpenseId);
+            await updateDoc(expenseRef, expenseData);
+            Alert.alert('Success', 'Expense updated successfully.');
+            resetForm();
+            setModalVisible(false);
+        } catch (error) {
+            console.error("Error updating expense: ", error);
+            Alert.alert('Error', 'Failed to update expense. Please try again.');
         }
     };
 
@@ -213,17 +292,34 @@ export default function HomePage() {
         setDate(formattedDate);
     };
 
-    const renderExpense = ({item}) => (
-        <ExpenseCard activeOpacity={0.8}>
+    // Обробник відкриття модального вікна для редагування
+    const handleEditExpense = (expense) => {
+        setTitle(expense.title);
+        setAmount(expense.amount.toString());
+        setCategory(expense.category);
+        setDate(expense.date);
+        setCurrency(expense.currency);
+        setEditingExpenseId(expense.id);
+        setIsEditing(true);
+        setModalVisible(true);
+    };
+
+    const renderExpense = ({ item }) => (
+        <ExpenseCard>
             <ExpenseInfo>
                 <ExpenseTitle>{item.title}</ExpenseTitle>
                 <ExpenseDetail>Amount: {item.amount} {item.currency}</ExpenseDetail>
                 <ExpenseDetail>Category: {item.category}</ExpenseDetail>
                 <ExpenseDetail>Date: {item.date}</ExpenseDetail>
             </ExpenseInfo>
-            <TouchableOpacity onPress={() => handleDeleteExpense(item.id)}>
-                <Ionicons name="trash-outline" size={24} color="red"/>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row' }}>
+                <TouchableOpacity style={{ marginRight: 12 }} onPress={() => handleEditExpense(item)}>
+                    <Ionicons name="pencil-outline" size={24} color="#0071ff" />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => handleDeleteExpense(item.id)}>
+                    <Ionicons name="trash-outline" size={24} color="red" />
+                </TouchableOpacity>
+            </View>
         </ExpenseCard>
     );
 
@@ -238,31 +334,34 @@ export default function HomePage() {
                     keyExtractor={(item) => item.id}
                     renderItem={renderExpense}
                     ListEmptyComponent={
-                        <ExpenseDetail style={{textAlign: 'center', marginTop: 20}}>
+                        <ExpenseDetail style={{ textAlign: 'center', marginTop: 20 }}>
                             No expenses added
                         </ExpenseDetail>
                     }
                 />
-
                 <AddExpenseButton
                     mode="contained"
-                    onPress={() => setModalVisible(true)}
-                    buttonColor="#0071ff"
-                    labelStyle={{fontWeight: 'bold', fontSize: 16}}
+                    onPress={() => {
+                        resetForm();
+                        setModalVisible(true);
+                    }}
+                    labelStyle={{ fontWeight: 'bold', fontSize: 16, color: '#fff' }}
                 >
                     Add Expense
                 </AddExpenseButton>
-
                 <Modal
                     visible={modalVisible}
                     animationType="slide"
                     transparent
-                    onRequestClose={() => setModalVisible(false)}
+                    onRequestClose={() => {
+                        resetForm();
+                        setModalVisible(false);
+                    }}
                 >
                     <ModalContainer>
                         <ModalContent>
-                            <HeaderTitle style={{fontSize: 24, color: '#0071ff', marginBottom: 16}}>
-                                New Expense
+                            <HeaderTitle style={{ fontSize: 24, color: '#0071ff', marginBottom: 16 }}>
+                                {isEditing ? 'Edit Expense' : 'New Expense'}
                             </HeaderTitle>
                             <TextInput
                                 label="Title (e.g., Groceries)"
@@ -280,7 +379,7 @@ export default function HomePage() {
                                 style={inputStyle}
                             />
                             <View>
-                                <ExpenseDetail style={{marginBottom: 6, fontWeight: 'bold', fontSize: 16}}>
+                                <ExpenseDetail style={{ marginBottom: 6, fontWeight: 'bold', fontSize: 16 }}>
                                     Currency:
                                 </ExpenseDetail>
                                 <CurrencySelector>
@@ -302,13 +401,28 @@ export default function HomePage() {
                                     </CurrencyOption>
                                 </CurrencySelector>
                             </View>
-                            <TextInput
-                                label="Category (e.g., Food, Transport, Bills)"
-                                mode="outlined"
-                                value={category}
-                                onChangeText={setCategory}
-                                style={inputStyle}
-                            />
+                            {/* Видалено текстове поле для Category */}
+                            <ExpenseDetail style={{ marginBottom: 6, fontWeight: 'bold', fontSize: 16 }}>
+                                Select Category:
+                            </ExpenseDetail>
+                            <CategoryScroll>
+                                {defaultCategories.map(({ name, icon }) => (
+                                    <CategoryButton
+                                        key={name}
+                                        selected={category === name}
+                                        onPress={() => setCategory(name)}
+                                    >
+                                        <Ionicons
+                                            name={icon}
+                                            size={20}
+                                            color={category === name ? "white" : "#0071ff"}
+                                        />
+                                        <CategoryText selected={category === name}>
+                                            {name}
+                                        </CategoryText>
+                                    </CategoryButton>
+                                ))}
+                            </CategoryScroll>
                             <TextInput
                                 label="Date (YYYY-MM-DD)"
                                 mode="outlined"
@@ -316,25 +430,38 @@ export default function HomePage() {
                                 onChangeText={setDate}
                                 style={inputStyle}
                             />
-
                             <Button
                                 mode="outlined"
                                 onPress={setCurrentDate}
-                                style={{marginBottom: 16}}
+                                style={{ marginBottom: 16 }}
                             >
                                 Set Current Date
                             </Button>
-
-                            <Button
-                                mode="contained"
-                                onPress={handleAddExpense}
-                                buttonColor="#0071ff"
-                                labelStyle={{fontWeight: 'bold', fontSize: 16}}
-                                style={{marginBottom: 8}}
-                            >
-                                Add
-                            </Button>
-                            <Button onPress={() => setModalVisible(false)} color="#0071ff">
+                            {isEditing ? (
+                                <Button
+                                    mode="contained"
+                                    onPress={handleUpdateExpense}
+                                    buttonColor="#0071ff"
+                                    labelStyle={{ fontWeight: 'bold', fontSize: 16, color: '#fff' }}
+                                    style={{ marginBottom: 8 }}
+                                >
+                                    Update Expense
+                                </Button>
+                            ) : (
+                                <Button
+                                    mode="contained"
+                                    onPress={handleAddExpense}
+                                    buttonColor="#0071ff"
+                                    labelStyle={{ fontWeight: 'bold', fontSize: 16, color: '#fff' }}
+                                    style={{ marginBottom: 8 }}
+                                >
+                                    Add Expense
+                                </Button>
+                            )}
+                            <Button onPress={() => {
+                                resetForm();
+                                setModalVisible(false);
+                            }} color="#0071ff">
                                 Cancel
                             </Button>
                         </ModalContent>
