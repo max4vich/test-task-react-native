@@ -2,7 +2,8 @@
 
 ## Project Overview
 
-This project is a **React Native** application that provides a sign-in page for users to log in with their email and password. It integrates with **Firebase** for authentication, offering a secure sign-in flow. Users can sign in with their registered credentials, and the app will navigate to the "HomeScreen" upon successful authentication.
+This project is a **React Native** small mobile application using React Native with either Firebase or Supabase as the backend. The application allows users to track their personal expenses by adding, viewing, editing, and deleting transactions.
+
 
 ---
 
