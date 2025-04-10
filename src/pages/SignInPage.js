@@ -1,20 +1,21 @@
 import React, {useState} from 'react';
 import {
-    Alert,
-    Keyboard,
-    Platform,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
+    Alert, // Importing Alert to show alerts to the user
+    Keyboard, // Importing Keyboard to dismiss it when needed
+    Platform, // Platform-specific code handling
+    TouchableOpacity, // Touchable component for button interactions
+    TouchableWithoutFeedback, // Dismiss the keyboard when clicking outside
 } from 'react-native';
 import styled from 'styled-components/native';
-import {TextInput, Button} from 'react-native-paper';
-import {signInWithEmailAndPassword} from 'firebase/auth';
-import {auth} from '../configurations/firebaseConfig';
-import {Ionicons} from '@expo/vector-icons';
-import {LinearGradient} from 'expo-linear-gradient';
-import {useDispatch} from 'react-redux';
-import {logIn} from '../configurations/slices/authSlice';
+import {TextInput, Button} from 'react-native-paper'; // Importing TextInput and Button from react-native-paper
+import {signInWithEmailAndPassword} from 'firebase/auth'; // Firebase authentication function
+import {auth} from '../configurations/firebaseConfig'; // Firebase configuration import
+import {Ionicons} from '@expo/vector-icons'; // Icon library import
+import {LinearGradient} from 'expo-linear-gradient'; // For gradient background
+import {useDispatch} from 'react-redux'; // Redux dispatch for state management
+import {logIn} from '../configurations/slices/authSlice'; // Redux action for logging in
 
+// Gradient wrapper for the sign-in page background
 const SignInPageWrapper = styled(LinearGradient).attrs({
     colors: ['#0071FF', '#00B4FF'],
     start: {x: 0, y: 0},
@@ -26,6 +27,7 @@ const SignInPageWrapper = styled(LinearGradient).attrs({
     padding: 24px;
 `;
 
+// Back button styling
 const BackButton = styled(TouchableOpacity)`
     position: absolute;
     top: ${Platform.OS === 'ios' ? '44px' : '24px'};
@@ -33,6 +35,7 @@ const BackButton = styled(TouchableOpacity)`
     z-index: 10;
 `;
 
+// Card component for the form area
 const Card = styled.View`
     width: 85%;
     max-width: 400px;
@@ -45,6 +48,7 @@ const Card = styled.View`
     elevation: 5;
 `;
 
+// Title styling
 const Title = styled.Text`
     font-size: 28px;
     font-weight: bold;
@@ -54,12 +58,14 @@ const Title = styled.Text`
     font-family: Montserrat;
 `;
 
+// Wrapper for input fields
 const InputWrapper = styled.View`
     width: 100%;
     margin-bottom: 16px;
     overflow: hidden;
 `;
 
+// Styled button for signing in
 const StyledButton = styled(Button).attrs({
     contentStyle: {
         paddingVertical: 8,
@@ -69,6 +75,7 @@ const StyledButton = styled(Button).attrs({
     border-radius: 24px;
 `;
 
+// Error text styling for invalid inputs
 const ErrorText = styled.Text`
     color: red;
     font-size: 12px;
@@ -76,24 +83,28 @@ const ErrorText = styled.Text`
 `;
 
 export default function SignInPage({navigation}) {
-    const dispatch = useDispatch();
+    const dispatch = useDispatch(); // Redux dispatch function
 
+    // States for email, password, and error tracking
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [emailError, setEmailError] = useState(false);
     const [passwordError, setPasswordError] = useState(false);
 
+    // Function to go back to the previous screen
     const handleGoBack = () => {
         navigation.goBack();
     };
 
+    // Function to handle the sign-in process
     const handleSignIn = async () => {
-        Keyboard.dismiss();
-        let hasError = false;
+        Keyboard.dismiss(); // Dismiss keyboard on sign-in attempt
+        let hasError = false; // Flag for errors
 
-        setEmailError(false);
-        setPasswordError(false);
+        setEmailError(false); // Reset email error state
+        setPasswordError(false); // Reset password error state
 
+        // Check if email or password are empty
         if (!email.trim()) {
             setEmailError(true);
             hasError = true;
@@ -102,16 +113,23 @@ export default function SignInPage({navigation}) {
             setPasswordError(true);
             hasError = true;
         }
+
+        // Show alert if there are any errors
         if (hasError) {
             Alert.alert('Oops!', 'Please fill in all fields.');
             return;
         }
+
         try {
+            // Firebase sign-in process
             const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
+            // Dispatch login action with user data
             dispatch(logIn({uid: userCredential.user.uid, email: userCredential.user.email}));
             Alert.alert('Success!', 'You are signed in.');
+            // Navigate to home screen after successful sign-in
             navigation.navigate('HomeScreen');
         } catch (error) {
+            // Show error alert if sign-in fails
             Alert.alert('Whoops...', 'Incorrect email or password.');
         }
     };
@@ -119,12 +137,15 @@ export default function SignInPage({navigation}) {
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <SignInPageWrapper>
+                {/* Back button to go to the previous screen */}
                 <BackButton onPress={handleGoBack}>
                     <Ionicons name="arrow-back" size={28} color="white"/>
                 </BackButton>
                 <Card>
+                    {/* Welcome text */}
                     <Title>Welcome Back 👋</Title>
                     <InputWrapper>
+                        {/* Email input field */}
                         <TextInput
                             label="Email"
                             mode="outlined"
@@ -138,10 +159,12 @@ export default function SignInPage({navigation}) {
                             error={emailError}
                             style={{backgroundColor: 'white', width: '100%'}}
                         />
+                        {/* Display error message if email is invalid */}
                         {emailError && <ErrorText>Email is required</ErrorText>}
                     </InputWrapper>
 
                     <InputWrapper>
+                        {/* Password input field */}
                         <TextInput
                             label="Password"
                             mode="outlined"
@@ -153,9 +176,11 @@ export default function SignInPage({navigation}) {
                             autoComplete="password"
                             style={{backgroundColor: 'white', width: '100%'}}
                         />
+                        {/* Display error message if password is invalid */}
                         {passwordError && <ErrorText>Password is required</ErrorText>}
                     </InputWrapper>
 
+                    {/* Sign-in button */}
                     <StyledButton
                         mode="contained"
                         onPress={handleSignIn}

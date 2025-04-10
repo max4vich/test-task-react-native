@@ -5,6 +5,7 @@ import {LinearGradient} from 'expo-linear-gradient';
 import Header from "../components/WelcomePage/Heading";
 import AuthButtons from "../components/WelcomePage/AuthButtons";
 
+// Gradient background container
 const GradientWrapper = styled(LinearGradient).attrs({
     colors: ['#0071FF', '#00B4FF'],
     start: {x: 0, y: 0},
@@ -16,6 +17,7 @@ const GradientWrapper = styled(LinearGradient).attrs({
     padding: 24px;
 `;
 
+// Animated text for the footer
 const ExtraText = styled(Animated.Text)`
     font-size: 14px;
     font-weight: 500;
@@ -24,14 +26,16 @@ const ExtraText = styled(Animated.Text)`
 `;
 
 export default function WelcomePage({navigation}) {
+    // Creating a reference for animation value
     const fadeAnim = useRef(new Animated.Value(0)).current;
 
+    // Animating fade-in effect on component mount
     useEffect(() => {
         Animated.timing(fadeAnim, {
-            toValue: 1,
-            duration: 1000,
-            delay: 1000,
-            useNativeDriver: true,
+            toValue: 1, // End opacity
+            duration: 1000, // Animation duration
+            delay: 1000, // Delay before starting animation
+            useNativeDriver: true, // Using native driver for performance
         }).start();
     }, [fadeAnim]);
 

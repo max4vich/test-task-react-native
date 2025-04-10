@@ -17,7 +17,7 @@ import { db } from '../configurations/firebaseConfig';
 import { useSelector, useDispatch } from 'react-redux';
 import { setExpenses, removeExpense as removeExpenseAction } from '../configurations/slices/expensesSlice';
 
-// Загальні стилі для сторінок
+// PageWrapper: Styles the entire page with padding and a light background color
 const PageWrapper = styled.View`
     flex: 1;
     background: #f0f4f7;
@@ -25,12 +25,14 @@ const PageWrapper = styled.View`
     padding-bottom: 0;
 `;
 
+// Header: Styles the top header, with a dynamic margin for iOS and Android
 const Header = styled.View`
     margin-top: ${Platform.OS === 'ios' ? '44px' : '24px'};
     margin-bottom: 16px;
     align-items: center;
 `;
 
+// HeaderTitle: Title of the page, styled with font size and weight
 const HeaderTitle = styled.Text`
     font-size: 26px;
     font-weight: bold;
@@ -41,6 +43,7 @@ const HeaderTitle = styled.Text`
     margin-bottom: 8px;
 `;
 
+// ExpenseCard: Style for each expense item card
 const ExpenseCard = styled.View`
     background: white;
     border-radius: 16px;
@@ -58,40 +61,47 @@ const ExpenseCard = styled.View`
     align-items: center;
 `;
 
+// ExpenseInfo: Container for displaying expense details
 const ExpenseInfo = styled.View`
     flex: 1;
 `;
 
+// ExpenseTitle: Title style for expense items
 const ExpenseTitle = styled.Text`
     font-size: 20px;
     font-weight: bold;
     color: #333;
 `;
 
+// ExpenseDetail: Style for the expense's detailed info, such as amount, category, and date
 const ExpenseDetail = styled.Text`
     font-size: 14px;
     color: #666;
     margin-top: 4px;
 `;
 
+// CurrencySelector: Wrapper for currency options
 const CurrencySelector = styled.View`
     flex-direction: row;
     justify-content: flex-start;
     margin-bottom: 16px;
 `;
 
+// CurrencyOption: Touchable area for selecting a currency
 const CurrencyOption = styled(TouchableOpacity)`
     flex-direction: row;
     align-items: center;
     margin-right: 20px;
 `;
 
+// CurrencyLabel: Text label for the currency
 const CurrencyLabel = styled.Text`
     font-size: 16px;
     margin-left: 6px;
     color: #333;
 `;
 
+// AddExpenseButton: Button for adding new expenses, styled with a blue color
 const AddExpenseButton = styled(Button).attrs({
     contentStyle: { paddingVertical: 8 },
 })`
@@ -100,6 +110,7 @@ const AddExpenseButton = styled(Button).attrs({
     background-color: #0071ff;
 `;
 
+// ModalContainer: A semi-transparent background for the modal
 const ModalContainer = styled.View`
     flex: 1;
     background: rgba(0, 0, 0, 0.6);
@@ -107,6 +118,7 @@ const ModalContainer = styled.View`
     padding: 24px;
 `;
 
+// ModalContent: The actual content of the modal with a white background
 const ModalContent = styled.View`
     background: white;
     border-radius: 16px;
@@ -118,13 +130,14 @@ const ModalContent = styled.View`
     elevation: 5;
 `;
 
+// inputStyle: Standard input field styling
 const inputStyle = {
     backgroundColor: 'white',
     width: '100%',
     marginBottom: 12,
 };
 
-// Додаткові компоненти для категорій
+// CategoryScroll: Horizontal scroll view for category options
 const CategoryScroll = styled.ScrollView.attrs({
     horizontal: true,
     showsHorizontalScrollIndicator: false,
@@ -133,6 +146,7 @@ const CategoryScroll = styled.ScrollView.attrs({
   margin-bottom: 16px;
 `;
 
+// CategoryButton: Touchable button for selecting a category
 const CategoryButton = styled.TouchableOpacity`
   flex-direction: row;
   align-items: center;
@@ -143,6 +157,7 @@ const CategoryButton = styled.TouchableOpacity`
   margin-right: 8px;
 `;
 
+// CategoryText: Text for each category button, color changes based on selection
 const CategoryText = styled.Text`
   margin-left: 6px;
   font-size: 16px;
@@ -150,7 +165,7 @@ const CategoryText = styled.Text`
   font-weight: bold;
 `;
 
-// Дефолтні категорії для вибору у модальному вікні
+// defaultCategories: Default categories to choose from, with icons
 const defaultCategories = [
     { name: "Food", icon: "fast-food-outline" },
     { name: "Transport", icon: "bus-outline" },
@@ -160,22 +175,24 @@ const defaultCategories = [
     { name: "Other", icon: "ellipsis-horizontal-outline" },
 ];
 
+// Main function: The home page where users can add and manage expenses
 export default function HomePage() {
     const dispatch = useDispatch();
 
-    const [title, setTitle] = useState('');
-    const [amount, setAmount] = useState('');
-    const [category, setCategory] = useState('');
-    const [date, setDate] = useState('');
-    const [currency, setCurrency] = useState('UAH');
-    const [modalVisible, setModalVisible] = useState(false);
+    const [title, setTitle] = useState(''); // Title of the expense
+    const [amount, setAmount] = useState(''); // Amount for the expense
+    const [category, setCategory] = useState(''); // Selected category
+    const [date, setDate] = useState(''); // Date of the expense
+    const [currency, setCurrency] = useState('UAH'); // Currency for the expense
+    const [modalVisible, setModalVisible] = useState(false); // Control modal visibility
 
-    const [isEditing, setIsEditing] = useState(false);
-    const [editingExpenseId, setEditingExpenseId] = useState(null);
+    const [isEditing, setIsEditing] = useState(false); // Flag to check if expense is being edited
+    const [editingExpenseId, setEditingExpenseId] = useState(null); // Id of the expense being edited
 
-    const user = useSelector(state => state.auth.user);
-    const expenses = useSelector(state => state.expenses.expenses);
+    const user = useSelector(state => state.auth.user); // Current user
+    const expenses = useSelector(state => state.expenses.expenses); // List of expenses
 
+    // Effect hook for fetching expenses data from Firestore and updating the Redux store
     useEffect(() => {
         if (!user) return;
         const expensesRef = collection(db, 'expenses');
@@ -197,15 +214,16 @@ export default function HomePage() {
                         }
                     }
                 });
-                dispatch(setExpenses(uniqueExpenses));
+                dispatch(setExpenses(uniqueExpenses)); // Dispatch expenses data to Redux store
             },
             (error) => {
                 console.error("Error fetching expenses: ", error);
             }
         );
-        return () => unsubscribe();
+        return () => unsubscribe(); // Clean up subscription on component unmount
     }, [user, dispatch]);
 
+    // Reset form fields after submitting or canceling expense
     const resetForm = () => {
         setTitle('');
         setAmount('');
@@ -216,6 +234,7 @@ export default function HomePage() {
         setEditingExpenseId(null);
     };
 
+    // Function to handle adding a new expense
     const handleAddExpense = async () => {
         Keyboard.dismiss();
         if (!title.trim() || !amount.trim() || !category.trim() || !date.trim()) {
@@ -239,13 +258,14 @@ export default function HomePage() {
             await addDoc(collection(db, 'expenses'), expenseData);
             Alert.alert('Success', 'Expense added successfully.');
             resetForm();
-            setModalVisible(false);
+            setModalVisible(false); // Close modal after submitting
         } catch (error) {
             console.error("Error adding expense: ", error);
             Alert.alert('Error', 'Failed to add expense. Please try again.');
         }
     };
 
+    // Function to handle updating an existing expense
     const handleUpdateExpense = async () => {
         Keyboard.dismiss();
         if (!title.trim() || !amount.trim() || !category.trim() || !date.trim()) {
@@ -275,6 +295,7 @@ export default function HomePage() {
         }
     };
 
+    // Function to handle deleting an expense
     const handleDeleteExpense = async (expenseId) => {
         try {
             await deleteDoc(doc(db, 'expenses', expenseId));
@@ -292,7 +313,7 @@ export default function HomePage() {
         setDate(formattedDate);
     };
 
-    // Обробник відкриття модального вікна для редагування
+    // Function to handle expense editing
     const handleEditExpense = (expense) => {
         setTitle(expense.title);
         setAmount(expense.amount.toString());
@@ -304,6 +325,13 @@ export default function HomePage() {
         setModalVisible(true);
     };
 
+    // Function to handle modal close
+    const closeModal = () => {
+        resetForm();
+        setModalVisible(false); // Close modal without saving
+    };
+
+    // Render the expense items as cards
     const renderExpense = ({ item }) => (
         <ExpenseCard>
             <ExpenseInfo>
@@ -323,6 +351,7 @@ export default function HomePage() {
         </ExpenseCard>
     );
 
+    // Render the main UI for expenses and modal
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <PageWrapper>

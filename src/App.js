@@ -7,11 +7,13 @@ import {logIn, logOut, finishLoading} from './configurations/slices/authSlice';
 import MainStack from './utils/navigate';
 import styled from 'styled-components/native';
 
+// Wrapper component for the app with a white background
 const Wrapper = styled.View`
     flex: 1;
     background: white;
 `;
 
+// Component to handle authentication state changes
 function AuthHandler() {
     const dispatch = useDispatch();
 
@@ -29,7 +31,6 @@ function AuthHandler() {
 
     return <MainStack/>;
 }
-
 
 export default function App() {
     return (

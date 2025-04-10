@@ -6,8 +6,10 @@ import {PieChart} from 'react-native-chart-kit';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Ionicons} from '@expo/vector-icons';
 
+// Get the screen width to dynamically size the chart
 const screenWidth = Dimensions.get("window").width;
 
+// Styled components for layout and design
 const Container = styled(SafeAreaView)`
     flex: 1;
     background: #eef3f7;
@@ -19,8 +21,8 @@ const ContentWrapper = styled.ScrollView`
 `;
 
 const ChartWrapper = styled.View`
-  width: 100%;
-  align-items: center;
+    width: 100%;
+    align-items: center;
 `;
 
 const ChartContainer = styled.View`
@@ -31,7 +33,6 @@ const ChartContainer = styled.View`
     align-items: center;
 `;
 
-
 const LegendContainer = styled.View`
     flex-direction: row;
     flex-wrap: wrap;
@@ -39,7 +40,7 @@ const LegendContainer = styled.View`
     justify-content: center;
 `;
 
-// Компонент для одного елементу легенди
+// Component for a single legend item (color box + text)
 const LegendItem = styled.View`
     flex-direction: row;
     align-items: center;
@@ -47,7 +48,6 @@ const LegendItem = styled.View`
     margin-bottom: 8px;
 `;
 
-// Кольоровий прямокутник для легенди
 const LegendColorBox = styled.View`
     width: 12px;
     height: 12px;
@@ -56,7 +56,6 @@ const LegendColorBox = styled.View`
     border-radius: 2px;
 `;
 
-// Текст опису для легенди
 const LegendText = styled.Text`
     font-size: 14px;
     color: #333;
@@ -125,7 +124,7 @@ const EmptyText = styled(ExpenseDetail)`
     margin-top: 20px;
 `;
 
-// FilterScroll з негативними відступами для компенсації padding 24px батьківського контейнера
+// Horizontal scroll for filter buttons
 const FilterScroll = styled.ScrollView.attrs({
     horizontal: true,
     showsHorizontalScrollIndicator: false,
@@ -136,7 +135,7 @@ const FilterScroll = styled.ScrollView.attrs({
     margin-right: -24px;
 `;
 
-// Аналогічно для CategoryScroll
+// Similar scroll for category buttons
 const CategoryScroll = styled.ScrollView.attrs({
     horizontal: true,
     showsHorizontalScrollIndicator: false,
@@ -179,15 +178,17 @@ const CategoryText = styled.Text`
 `;
 
 export default function ExpensesPage() {
+    // Getting expenses from redux store
     const expenses = useSelector((state) => state.expenses.expenses);
 
+    // Local state for selected timeframe and category
     const [selectedTimeframe, setSelectedTimeframe] = useState("This Month");
     const [selectedCategory, setSelectedCategory] = useState("All");
 
-    // Варіанти часових рамок
+    // Timeframe filter options
     const timeframeOptions = ["Today", "This Week", "This Month", "This Year", "All"];
 
-    // Дефолтні категорії з іконками (з набору Ionicons)
+    // Default categories with icons from Ionicons
     const defaultCategories = [
         {name: "All", icon: "albums-outline"},
         {name: "Food", icon: "fast-food-outline"},
@@ -198,7 +199,7 @@ export default function ExpensesPage() {
         {name: "Other", icon: "ellipsis-horizontal-outline"},
     ];
 
-    // Функція для фільтрації витрат за часовим проміжком
+    // Function to filter expenses by timeframe (e.g., today, this month)
     const filterByTimeframe = (expense) => {
         if (selectedTimeframe === "All") return true;
         const expenseDate = new Date(expense.date);
@@ -207,7 +208,7 @@ export default function ExpensesPage() {
             return expenseDate.toDateString() === now.toDateString();
         }
         if (selectedTimeframe === "This Week") {
-            // Визначення понеділка поточного тижня
+            // Calculate the start of the current week (Monday)
             const currentDay = now.getDay() || 7;
             const monday = new Date(now);
             monday.setDate(now.getDate() - currentDay + 1);
@@ -225,20 +226,20 @@ export default function ExpensesPage() {
         return true;
     };
 
-    // Фільтр витрат за часовим інтервалом і категорією
+    // Filter expenses based on selected timeframe and category
     const filteredExpensesByTime = expenses.filter(exp => exp.date && filterByTimeframe(exp));
     const filteredExpenses = selectedCategory === "All"
         ? filteredExpensesByTime
         : filteredExpensesByTime.filter(exp => exp.category === selectedCategory);
 
-    // Розрахунок загальних витрат за валютою
+    // Calculate total expenses by currency
     const totalByCurrency = filteredExpenses.reduce((acc, exp) => {
         const currency = exp.currency || "UAH";
         acc[currency] = (acc[currency] || 0) + parseFloat(exp.amount);
         return acc;
     }, {});
 
-    // Розрахунок витрат за категоріями (з врахуванням валюти)
+    // Calculate total expenses by category and currency
     const totalByCategory = filteredExpenses.reduce((acc, exp) => {
         const category = exp.category || "Other";
         const currency = exp.currency || "UAH";
@@ -247,8 +248,10 @@ export default function ExpensesPage() {
         return acc;
     }, {});
 
+    // Define pie chart colors
     const chartColors = ['#d1ecff', '#80cbff', '#a6daff', 'rgba(90,189,255,0.75)', '#8338ec', '#ff9f1c', '#118ab2'];
 
+    // Prepare data for the pie chart
     const pieChartData = Object.entries(totalByCategory).map(([name, amount], index) => ({
         name,
         population: amount,
@@ -257,7 +260,7 @@ export default function ExpensesPage() {
         legendFontSize: 14,
     }));
 
-    // Рендер списку витрат
+    // Render individual expense items in the list
     const renderExpense = ({item}) => (
         <ExpenseCard activeOpacity={0.8}>
             <ExpenseInfo>
@@ -276,7 +279,7 @@ export default function ExpensesPage() {
             <ContentWrapper>
                 <HeaderTitle>Expense Analysis</HeaderTitle>
 
-                {/* Фільтр за часовим проміжком */}
+                {/* Timeframe filter */}
                 <SectionTitle>Select Timeframe</SectionTitle>
                 <FilterScroll>
                     {timeframeOptions.map(item => (
@@ -292,7 +295,7 @@ export default function ExpensesPage() {
                     ))}
                 </FilterScroll>
 
-                {/* Фільтр за категорією */}
+                {/* Category filter */}
                 <SectionTitle>Select Category</SectionTitle>
                 <CategoryScroll>
                     {defaultCategories.map(({name, icon}) => (
@@ -313,6 +316,7 @@ export default function ExpensesPage() {
                     ))}
                 </CategoryScroll>
 
+                {/* Total expenses by currency */}
                 {Object.entries(totalByCurrency).filter(([currency, total]) => total > 0).length > 0 && (
                     <SummaryCard>
                         {Object.entries(totalByCurrency).map(([currency, total]) =>
@@ -325,11 +329,10 @@ export default function ExpensesPage() {
                     </SummaryCard>
                 )}
 
-
+                {/* Pie chart for expenses by category */}
                 <SectionTitle>Expenses by Category</SectionTitle>
                 {pieChartData.length > 0 ? (
                     <SummaryCard>
-
                         <ChartWrapper>
                             <PieChart
                                 data={pieChartData}
@@ -358,11 +361,11 @@ export default function ExpensesPage() {
                         </LegendContainer>
                     </SummaryCard>
                 ) : (
-                    <EmptyText>No category data available.</EmptyText>
+                    <EmptyText>No data for this category yet.</EmptyText>
                 )}
 
-
-                <SectionTitle>Expenses</SectionTitle>
+                {/* List of filtered expenses */}
+                <SectionTitle>Filtered Expenses</SectionTitle>
                 {filteredExpenses.length === 0 ? (
                     <EmptyText>No expenses recorded for the selected filters.</EmptyText>
                 ) : (
