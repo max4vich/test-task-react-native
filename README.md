@@ -95,6 +95,4 @@ Firebase abstracts many backend complexities, allowing developers to focus on fr
 4. UI/UX Improvements: The design is simple and could benefit from further optimization for various screen sizes.
 
 ### Conclusion
-This project provides a functional sign-in page using React Native and Firebase for authentication. It serves as a foundation for further development, such as password recovery, user profile management, and deeper integration with other Firebase services.
-
 Feel free to contribute or suggest improvements. Happy coding! 🎉
